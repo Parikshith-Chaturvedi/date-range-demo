@@ -128,3 +128,70 @@
 .select-style:hover {
   background-color: #e0e0e0;
 }
+
+.p1 {
+  padding: 16px;
+}
+
+.btn {
+  border: 1px solid #3f3f3f;
+  padding: 6px 10px;
+  border-radius: 0.25rem;
+  font-size: 12px;
+  background-color: #fff;
+  cursor: pointer;
+}
+.btn-bg {
+  background-color: #16a34a;
+  color: #fff;
+}
+.btn-outline {
+  border: 1px solid #16a34a;
+}
+
+.btn-hover:hover {
+  background-color: #eee;
+  border: 1px solid #eee;
+  padding: 6px 10px;
+  border-radius: 0.25rem;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-no-border{
+  border: none;
+}
+
+.d-flex {
+  display: flex;
+  width: 100%;
+}
+.space-between {
+  justify-content: space-between;
+}
+
+.mx-5 {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.mt1 {
+  margin-top: 16px;
+}
+
+.w15 {
+  width: 15%;
+  max-width: 15%;
+}
+
+.w70 {
+  width: 70%;
+  max-width: 70%;
+}
+.h-4 {
+  height: 1rem
+}
+
+.w-4{
+  width: 1rem;
+}

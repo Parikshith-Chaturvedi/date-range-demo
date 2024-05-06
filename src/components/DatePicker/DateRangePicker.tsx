@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import './DateRangePicker.css';
-import { getDaysInMonth, getMonthStartDay, isWeekend, getWeekendDates } from '../../utils/utils';
+import {
+    getDaysInMonth,
+    getMonthStartDay,
+    isWeekend,
+    getWeekendDates,
+    getAdjustedMonthYear
+} from '../../utils/utils';
+
+import { ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/24/solid'
+
+
 
 const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -22,10 +32,16 @@ type DateRange = {
     endDate: Date | null;
 };
 
+export type PredefinedRange = {
+    label: string;
+    startDate: Date;
+    endDate: Date;
+};
+
 type DateRangePickerProps = {
-    onChange: (dateRange: DateRange, weekendDates: Date[]) => void;
+    onChange: (dateRange: [Date | null, Date | null], weekendDates: Date[]) => void;
     selectedRange?: DateRange;
-    predefinedRanges?: { label: string; startDate: Date; endDate: Date }[];
+    predefinedRanges?: PredefinedRange[];
 };
 
 const isToday = (date: Date) => {
@@ -36,6 +52,7 @@ const isToday = (date: Date) => {
         date.getDate() === today.getDate()
     );
 };
+
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({ onChange, selectedRange, predefinedRanges }) => {
     const [dateRange, setDateRange] = useState<DateRange>({
@@ -71,8 +88,14 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onChange, selectedRan
     const confirmSelection = () => {
         if (dateRange.startDate && dateRange.endDate) {
             const weekendDates = getWeekendDates(dateRange.startDate, dateRange.endDate);
-            onChange(dateRange, weekendDates);
+            onChange([dateRange.startDate, dateRange.endDate], weekendDates);
         }
+    };
+
+    const handlePredefinedRange = (range: PredefinedRange) => {
+        setDateRange({ startDate: range.startDate, endDate: range.endDate });
+        const weekendDates = getWeekendDates(range.startDate, range.endDate);
+        onChange([range.startDate, range.endDate], weekendDates);
     };
 
     const handleMouseEnter = (date: Date | null) => {
@@ -83,24 +106,13 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onChange, selectedRan
 
 
     const handleMonthChange = (delta: number) => {
-        const newDate = new Date(currentMonth);
-        newDate.setMonth(currentMonth.getMonth() + delta);
-
-        if (newDate.getMonth() > 11) {
-            newDate.setFullYear(newDate.getFullYear() + 1);
-            newDate.setMonth(0);
-        } else if (newDate.getMonth() < 0) {
-            newDate.setFullYear(newDate.getFullYear() - 1);
-            newDate.setMonth(11);
-        }
-        setCurrentMonth(newDate);
+        const newMonth = getAdjustedMonthYear(currentMonth, delta);
+        setCurrentMonth(newMonth);
     };
 
-
     const handleYearChange = (newYear: number) => {
-        const newDate = new Date(currentMonth);
-        newDate.setFullYear(newYear);
-        setCurrentMonth(newDate);
+        const newMonth = currentMonth.getMonth();
+        setCurrentMonth(new Date(newYear, newMonth, 1));
     };
 
 
@@ -118,29 +130,42 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onChange, selectedRan
 
         return (
             <div className="calendar">
-                <div className="calendar-header">
-                    {/* <span>
-                        {currentMonth.toLocaleString('default', { month: 'long' })} {year}
-                    </span> */}
+                <div className="d-flex">
+                    <div className="w15">
+                        <button className='btn btn-no-border btn-hover' onClick={() => handleMonthChange(-1)}>
+                            <ArrowLeftIcon className="h-4 w-4" />
+                        </button>
+                    </div>
+                    <div className='w70'>
+                        <select className="select-style mx-5"
+                            value={currentMonth.getMonth()}
+                            onChange={(e) =>
+                                handleMonthChange(parseInt(e.target.value) - currentMonth.getMonth()
+                                )}
+                        >
+                            {months.map((m, index) => (
+                                <option key={index} value={index}>
+                                    {m}
+                                </option>
+                            ))}
+                        </select>
+                        <select className="select-style" value={currentMonth.getFullYear()} onChange={(e) => handleYearChange(parseInt(e.target.value))}>
+                            {getYearOptions(1900, 2100).map((y) => (
+                                <option key={y} value={y}>
+                                    {y}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="w15">
+                        <button className='btn btn-no-border btn-hover' onClick={() => handleMonthChange(+1)}>
+                            <ArrowRightIcon className="h-4 w-4" />
+                        </button>
+                    </div>
 
-                    <select className="select-style" value={month} onChange={(e) => handleMonthChange(parseInt(e.target.value))}>
-                        {months.map((m, index) => (
-                            <option key={index} value={index}>
-                                {m}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select className="select-style" value={year} onChange={(e) => handleYearChange(parseInt(e.target.value))}>
-                        {getYearOptions(1900, 2100).map((y) => (
-                            <option key={y} value={y}>
-                                {y}
-                            </option>
-                        ))}
-                    </select>
                 </div>
 
-                <div className="calendar-week">
+                <div className="calendar-week mt-1">
                     {daysOfWeek.map((day, index) => (
                         <div key={index} className="day-name">
                             {day}
@@ -191,13 +216,25 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onChange, selectedRan
                         );
                     })}
                 </div>
-                {dateRange.startDate && dateRange.endDate && (
-                    <div className="calendar-footer">
-                        <button onClick={confirmSelection} className="ok-button">
-                            OK
+                <div className="d-flex mt1">
+                    {predefinedRanges?.map((range, index) => (
+                        <button
+                            className='btn btn-outline mx-5'
+                            key={index}
+                            onClick={() => handlePredefinedRange(range)}
+                        >
+                            {range.label}
                         </button>
-                    </div>
-                )}
+                    ))}
+                    {dateRange.startDate && dateRange.endDate && (
+                        <div className="calendar-footer">
+                            <button onClick={confirmSelection} className='btn btn-outline btn-bg'>
+                                OK
+                            </button>
+                        </div>
+                    )}
+                </div>
+
             </div>
         );
     };
@@ -206,28 +243,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onChange, selectedRan
         <div className="date-range-picker">
             <h3>Weekday Date Range Picker</h3>
             {renderCalendar()}
-
-            <div className="navigation">
-                <button onClick={() => handleMonthChange(-1)}>Previous Month</button>
-                <button onClick={() => handleMonthChange(+1)}>Next Month</button>
-            </div>
-
-            {predefinedRanges && (
-                <div className="predefined-ranges">
-                    {predefinedRanges.map((range, index) => (
-                        <button
-                            key={index}
-                            onClick={() => {
-                                setDateRange({ startDate: range.startDate, endDate: range.endDate });
-                                const weekendDates = getWeekendDates(range.startDate, range.endDate);
-                                onChange({ startDate: range.startDate, endDate: range.endDate }, weekendDates);
-                            }}
-                        >
-                            {range.label}
-                        </button>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };
